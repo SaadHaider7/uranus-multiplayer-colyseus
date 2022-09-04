@@ -5,6 +5,7 @@ class Player extends Schema {
     @type("boolean") connected: boolean;
     @type("string") sessionId: string;
     @type("string") name: string;
+    @type("string") avatarUrl: string;
     @type("string") template: string;
 }
 
@@ -35,6 +36,17 @@ export class RelayRoom extends Room<RoomState> { // tslint:disable-line
         }
 
         this.onMessage('*', (client: Client, type: string | number, message: any) => {
+
+            // --- intercept server-only messages
+            if (type === 'playerUpdate') {
+                const player = this.state.players.get(client.sessionId);
+
+                //--- update player properties
+                if (message.avatarUrl) player.avatarUrl = message.avatarUrl;
+                if (message.name) player.name = message.name;
+                return;
+            }
+
             this.broadcast(type, [client.sessionId, message], { except: client });
         });
     }
