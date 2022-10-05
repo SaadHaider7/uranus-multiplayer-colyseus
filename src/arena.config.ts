@@ -9,7 +9,12 @@ export default Arena({
         /**
          * Define your room handlers:
          */
-        gameServer.define('relay_room', RelayRoom, {
+         gameServer.define('relay_room', RelayRoom, {
+            maxClients: 128,
+            allowReconnectionTime: 10
+        })
+
+        gameServer.define('relay_area_room', RelayRoom, {
             maxClients: 128,
             allowReconnectionTime: 10
         }).filterBy(['areaId'])
