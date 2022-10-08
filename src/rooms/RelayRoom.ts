@@ -7,6 +7,7 @@ class Player extends Schema {
     @type("string") name: string;
     @type("string") avatarUrl: string;
     @type("string") template: string;
+    @type("string") username: string;
 }
 
 class RoomState extends Schema {
@@ -58,6 +59,7 @@ export class RelayRoom extends Room<RoomState> { // tslint:disable-line
         player.sessionId = client.sessionId;
 
         if (options.template) player.template = options.template.toString();
+        if (options.username) player.username = options.username.toString();
 
         this.state.players.set(client.sessionId, player);
     }
