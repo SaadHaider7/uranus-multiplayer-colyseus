@@ -39,7 +39,7 @@ export class RelayRoom extends Room<RoomState> { // tslint:disable-line
         this.onMessage('*', (client: Client, type: string | number, message: any) => {
 
             // --- intercept server-only messages
-            if (type === 'playerUpdate') {
+            if (type === 'playerUpdate') {                
                 const player = this.state.players.get(client.sessionId);
 
                 //--- update player properties
