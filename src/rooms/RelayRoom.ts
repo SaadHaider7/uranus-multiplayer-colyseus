@@ -39,12 +39,24 @@ export class RelayRoom extends Room<RoomState> { // tslint:disable-line
         this.onMessage('*', (client: Client, type: string | number, message: any) => {
 
             // --- intercept server-only messages
-            if (type === 'playerUpdate') {                
+            if (type === 'playerUpdate') {
                 const player = this.state.players.get(client.sessionId);
 
                 //--- update player properties
                 if (message.avatarUrl) player.avatarUrl = message.avatarUrl;
                 if (message.name) player.name = message.name;
+                return;
+            }
+
+            // --- filter messages if required
+            if (type === 'chat:message' && message.group) {
+
+                // --- if this is a group chat, broadcast only to group users
+                message.group.forEach((clientId: string) => {
+                    const receiverClient = this.clients.find(o => o.id === clientId);
+
+                    if (receiverClient) receiverClient.send(type, [client.sessionId, message]);
+                });
                 return;
             }
 
