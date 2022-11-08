@@ -72,6 +72,7 @@ export class RelayRoom extends Room<RoomState> { // tslint:disable-line
 
         if (options.template) player.template = options.template.toString();
         if (options.username) player.username = options.username.toString();
+        if (options.avatarUrl) player.avatarUrl = options.avatarUrl;
 
         this.state.players.set(client.sessionId, player);
     }
