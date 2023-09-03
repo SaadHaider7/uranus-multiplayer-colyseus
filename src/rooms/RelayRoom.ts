@@ -8,6 +8,9 @@ class Player extends Schema {
     @type("string") avatarUrl: string;
     @type("string") template: string;
     @type("string") username: string;
+    @type("number") worldPosX: number;
+    @type("number") worldPosY: number;
+    @type("number") worldPosZ: number;
 }
 
 class RoomState extends Schema {
@@ -17,10 +20,18 @@ class RoomState extends Schema {
 export class RelayRoom extends Room<RoomState> { // tslint:disable-line
     public allowReconnectionTime: number = 0;
 
+    public getDistanceBetweenPoints(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number): number {
+        const x = x1 - x2;
+        const y = y1 - y2;
+        const z = z1 - z2;
+        return Math.sqrt(x * x + y * y + z * z);
+    }
+
     public onCreate(options: Partial<{
         maxClients: number,
         allowReconnectionTime: number,
         metadata: any,
+        clusterDistance: number
     }>) {
         this.setState(new RoomState());
 
@@ -49,11 +60,11 @@ export class RelayRoom extends Room<RoomState> { // tslint:disable-line
             }
 
             // --- custom code for requesting avatar url from the server
-            if(type === 'requestAvatarUrl' && message.sessionId){
+            if (type === 'requestAvatarUrl' && message.sessionId) {
 
                 const player = this.state.players.get(message.sessionId);
 
-                if(player) client.send(`receiveAvatarUrl:${message.sessionId}`, [client.sessionId, {avatarUrl: player.avatarUrl}]);
+                if (player) client.send(`receiveAvatarUrl:${message.sessionId}`, [client.sessionId, { avatarUrl: player.avatarUrl }]);
                 return;
             }
 
@@ -69,7 +80,36 @@ export class RelayRoom extends Room<RoomState> { // tslint:disable-line
                 return;
             }
 
-            this.broadcast(type, [client.sessionId, message], { except: client });
+            // --- check if the player is close enough to receive the message (only for messages that include world position)
+            if (options.clusterDistance > 0.0 && message.x !== undefined) {
+
+                this.clients.forEach(receipientClient => {
+
+                    if (client.id === receipientClient.id) return true;
+
+                    const player = this.state.players.get(client.sessionId);
+
+                    // --- check player distance against world position
+                    // --- if larger than the cluster distance, don't send to this client
+                    const playerDistance = this.getDistanceBetweenPoints(
+                        message.x, message.y, message.z,
+                        player.worldPosX, player.worldPosY, player.worldPosZ
+                    );
+
+                    if (playerDistance <= options.clusterDistance) {
+                        receipientClient.send(type, [client.sessionId, message]);
+                    }
+
+                    // --- save client world location
+                    const receipientPlayer = this.state.players.get(receipientClient.sessionId);
+
+                    receipientPlayer.worldPosX = message.x;
+                    receipientPlayer.worldPosY = message.y;
+                    receipientPlayer.worldPosZ = message.z;
+                });
+            } else {
+                this.broadcast(type, [client.sessionId, message], { except: client });
+            }
         });
     }
 

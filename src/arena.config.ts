@@ -11,13 +11,39 @@ export default Arena({
          */
          gameServer.define('relay_room_tiny', RelayRoom, {
             maxClients: 10,
-            allowReconnectionTime: 3
+            allowReconnectionTime: 3,
+            clusterDistance: 0.0
         }).filterBy(['areaId'])
+
+        gameServer.define('relay_room_small', RelayRoom, {
+            maxClients: 20,
+            allowReconnectionTime: 3,
+            clusterDistance: 0.0
+        }).filterBy(['areaId'])        
 
          gameServer.define('relay_room', RelayRoom, {
             maxClients: 50,
-            allowReconnectionTime: 3
+            allowReconnectionTime: 3,
+            clusterDistance: 0.0
         }).filterBy(['areaId'])
+
+        gameServer.define('relay_world_tiny', RelayRoom, {
+            maxClients: 10,
+            allowReconnectionTime: 3,
+            clusterDistance: 80.0
+        }).filterBy(['areaId'])
+
+        gameServer.define('relay_world_small', RelayRoom, {
+            maxClients: 20,
+            allowReconnectionTime: 3,
+            clusterDistance: 80.0
+        }).filterBy(['areaId'])        
+
+         gameServer.define('relay_world_room', RelayRoom, {
+            maxClients: 50,
+            allowReconnectionTime: 3,
+            clusterDistance: 80.0
+        }).filterBy(['areaId'])        
     },
 
     initializeExpress: (app) => {
