@@ -20,11 +20,11 @@ class RoomState extends Schema {
 export class RelayRoom extends Room<RoomState> { // tslint:disable-line
     public allowReconnectionTime: number = 0;
 
-    public getDistanceBetweenPoints(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number): number {
+    public getDistanceBetweenPointsSq(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number): number {
         const x = x1 - x2;
         const y = y1 - y2;
         const z = z1 - z2;
-        return Math.sqrt(x * x + y * y + z * z);
+        return x * x + y * y + z * z;
     }
 
     public onCreate(options: Partial<{
@@ -33,6 +33,9 @@ export class RelayRoom extends Room<RoomState> { // tslint:disable-line
         metadata: any,
         clusterDistance: number
     }>) {
+
+        const clusterDistanceSq = options.clusterDistance * options.clusterDistance;
+        
         this.setState(new RoomState());
 
         if (options.maxClients) {
@@ -81,7 +84,7 @@ export class RelayRoom extends Room<RoomState> { // tslint:disable-line
             }
 
             // --- check if the player is close enough to receive the message (only for messages that include world position)
-            if (options.clusterDistance > 0.0 && message.x !== undefined) {
+            if (clusterDistanceSq > 0.0 && message.x !== undefined) {
 
                 this.clients.forEach(receipientClient => {
 
@@ -91,12 +94,12 @@ export class RelayRoom extends Room<RoomState> { // tslint:disable-line
 
                     // --- check player distance against world position
                     // --- if larger than the cluster distance, don't send to this client
-                    const playerDistance = this.getDistanceBetweenPoints(
+                    const playerDistance = this.getDistanceBetweenPointsSq(
                         message.x, message.y, message.z,
                         player.worldPosX, player.worldPosY, player.worldPosZ
                     );
 
-                    if (playerDistance <= options.clusterDistance) {
+                    if (playerDistance <= clusterDistanceSq) {
                         receipientClient.send(type, [client.sessionId, message]);
                     }
 
