@@ -62,15 +62,6 @@ export class RelayRoom extends Room<RoomState> { // tslint:disable-line
                 return;
             }
 
-            // --- custom code for requesting avatar url from the server
-            if (type === 'requestAvatarUrl' && message.sessionId) {
-
-                const player = this.state.players.get(message.sessionId);
-
-                if (player) client.send(`receiveAvatarUrl:${message.sessionId}`, [client.sessionId, { avatarUrl: player.avatarUrl }]);
-                return;
-            }
-
             // --- filter messages if required
             if (type === 'chat:message' && message.group) {
 
