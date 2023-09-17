@@ -19,6 +19,7 @@ class RoomState extends Schema {
 
 export class RelayRoom extends Room<RoomState> { // tslint:disable-line
     public allowReconnectionTime: number = 0;
+    private objectState: any = undefined;
 
     public getDistanceBetweenPointsSq(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number): number {
         const x = x1 - x2;
@@ -35,7 +36,8 @@ export class RelayRoom extends Room<RoomState> { // tslint:disable-line
     }>) {
 
         const clusterDistanceSq = options.clusterDistance * options.clusterDistance;
-        
+        this.objectState = {};
+
         this.setState(new RoomState());
 
         if (options.maxClients) {
@@ -50,7 +52,7 @@ export class RelayRoom extends Room<RoomState> { // tslint:disable-line
             this.setMetadata(options.metadata);
         }
 
-        this.onMessage('*', (client: Client, type: string | number, message: any) => {
+        this.onMessage('*', (client: Client, type: any, message: any) => {
 
             // --- intercept server-only messages
             if (type === 'playerUpdate') {
@@ -72,6 +74,26 @@ export class RelayRoom extends Room<RoomState> { // tslint:disable-line
                     if (receiverClient) receiverClient.send(type, [client.sessionId, message]);
                 });
                 return;
+            }
+
+            // --- check if it's an object update message
+            if (type.indexOf('objectUpdate') === 0) {
+
+                const action = type.split(':')[1];
+                let guid;
+
+                switch (action) {
+                    case 'request':
+                        guid = message;
+                        const lastState = this.objectState[guid];                        
+                        if (lastState) client.send(`objectUpdate:${guid}`, [client.sessionId, lastState]);
+                        break;
+                    default:
+                        // --- keep track of the latest object state
+                        guid = action;
+                        this.objectState[guid] = message;
+                        break;
+                }
             }
 
             // --- check if the player is close enough to receive the message (only for messages that include world position)
