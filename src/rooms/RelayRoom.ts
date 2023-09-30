@@ -20,6 +20,7 @@ class RoomState extends Schema {
 export class RelayRoom extends Room<RoomState> { // tslint:disable-line
     public allowReconnectionTime: number = 0;
     private objectState: any = undefined;
+    private objectSpawn: any = undefined;
 
     public getDistanceBetweenPointsSq(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number): number {
         const x = x1 - x2;
@@ -37,6 +38,7 @@ export class RelayRoom extends Room<RoomState> { // tslint:disable-line
 
         const clusterDistanceSq = options.clusterDistance * options.clusterDistance;
         this.objectState = {};
+        this.objectSpawn = {};
 
         this.setState(new RoomState());
 
@@ -77,23 +79,24 @@ export class RelayRoom extends Room<RoomState> { // tslint:disable-line
             }
 
             // --- check if it's an object update message
-            if (type.indexOf('objectUpdate') === 0) {
+            if (type.indexOf('ou:') === 0) {
 
-                const action = type.split(':')[1];
-                let guid;
+                // --- keep track of the latest object state
+                const guid = type.split(':')[1];
+                this.objectState[guid] = message;
+            }
 
-                switch (action) {
-                    case 'request':
-                        guid = message;
-                        const lastState = this.objectState[guid];                        
-                        if (lastState) client.send(`objectUpdate:${guid}`, [client.sessionId, lastState]);
-                        break;
-                    default:
-                        // --- keep track of the latest object state
-                        guid = action;
-                        this.objectState[guid] = message;
-                        break;
-                }
+            if (type === 'objectSpawn') {
+                const guid = message.guid;
+
+                // --- keep track of objects spawn for new players
+                this.objectSpawn[guid] = message;
+            }
+
+            if (type === 'objectOwner:request') {
+                const guid = message;
+                const lastState = this.objectState[guid];
+                if (lastState) client.send(`ou:${guid}`, [client.sessionId, lastState]);
             }
 
             // --- check if the player is close enough to receive the message (only for messages that include world position)
@@ -140,6 +143,12 @@ export class RelayRoom extends Room<RoomState> { // tslint:disable-line
         if (options.avatarUrl) player.avatarUrl = options.avatarUrl;
 
         this.state.players.set(client.sessionId, player);
+
+        // --- send list of spawn objects to this player
+        for(let guid in this.objectSpawn){
+            const message = this.objectSpawn[guid];
+            client.send('objectSpawn', [client.sessionId, message]);
+        }
     }
 
     public async onLeave(client: Client, consented: boolean) {
